@@ -568,7 +568,7 @@ public class Main {
                 String responseBody = response.body().string();
                 System.out.println("Response body-----------------:\n" + responseBody);
 
-                //TODO RESPONSE SUCCESS
+                //TODO EXAMPLE RESPONSE SUCCESS
                 //TODO {
                 //  "response_code": "0020",
                 //  "is_debit_flag": true,
