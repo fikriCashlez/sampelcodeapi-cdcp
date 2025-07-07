@@ -112,7 +112,7 @@ public class Main {
                 .url(endPoint)
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("hit-from", "rest-abcd")
+                .addHeader("hit-from", "rest-1751866232-AWSA1FAV") //TODO format {Prefix}-{device_timestamp}-{random 8 alphanumeric}
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
@@ -195,7 +195,7 @@ public class Main {
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", token)
-                .addHeader("hit-from", "rest-abcd")
+                .addHeader("hit-from", "rest-1751866232-AWSA1FAV") //TODO format {Prefix}-{device_timestamp}-{random 8 alphanumeric}
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
@@ -253,7 +253,7 @@ public class Main {
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Authorization", token)
-                .addHeader("hit-from", "rest-abcd")
+                .addHeader("hit-from", "rest-1751866232-AWSA1FAV") //TODO format {Prefix}-{device_timestamp}-{random 8 alphanumeric}
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
@@ -459,20 +459,13 @@ public class Main {
         sEmvKsn = bytesToHex(baEmvKsn);
 
         //TODO: 3. Handle Emv IPEK
-        byte[] baEmvIpek = hexStringToBytes(trackIPEK);
+        byte[] baEmvIpek = hexStringToBytes(emvIPEK);
 
         String hsBaseEmvData = emvData;
         sEmvLength = hsBaseEmvData.length();
-        if (sEmvLength % 2 != 0) {
-            hsBaseEmvData = "0" + hsBaseEmvData;
-        }
-        int iModulus = (sEmvLength / 2) % 8;
-        if (iModulus != 0) {
-            StringBuilder sb = new StringBuilder(hsBaseEmvData);
-            for (int i = 0; i < 8 - iModulus; i++) {
-                sb.insert(0, "00");
-            }
-            hsBaseEmvData = sb.toString();
+        int padding = (8 - ((sEmvLength / 2) % 8)) % 8;
+        for (int i = 0; i < padding; i++) {
+            hsBaseEmvData += "00";
         }
         hsBaseEmvData = hsBaseEmvData.toUpperCase();
         byte[] baBaseEmvData = hexStringToBytes(hsBaseEmvData);
@@ -482,7 +475,7 @@ public class Main {
         sEmvEnc = bytesToHex(baEncBaseEmvData).toUpperCase();
 
         System.out.println("-------------------------------EMV Data----------------------------------");
-        System.out.println("EMV KSN INDEX--------------------: " + sTrack2KsnIndex);
+        System.out.println("EMV KSN INDEX--------------------: " + sEmvKsnIndex);
         System.out.println("EMV KSN--------------------------: " + sEmvKsn);
         System.out.println("EMV IPEK-------------------------: " + bytesToHex(baEmvIpek));
         System.out.println("EMV Data Plain-------------------: " + emvData);
@@ -523,59 +516,97 @@ public class Main {
     }
 
     private static void doSaleTrx() {
-        String endPoint = URL + "MmCoreCdcpHost/v1/sale/sale_trx";
+        try {
+            String endPoint = URL + "MmCoreCdcpHost/v1/sale/sale_trx";
 
-        String pos_cloud_pointer = String.format("DRC-%s-%s", "CSZ", generateRandomID()); //TODO format DRC-initialMerchant-UUID Random
-        OkHttpClient client = new OkHttpClient();
-        long timestamp = getCurrentTimestamp();
+            String pos_cloud_pointer = String.format("DRC-%s-%s", "CSZ", generateRandomID()); //TODO format DRC-initialMerchant-UUID Random
+            OkHttpClient client = new OkHttpClient();
+            long timestamp = getCurrentTimestamp();
 
-        //JSON body generate QRCode
-        Map<String, Object> jsonBody = new HashMap<>();
-        jsonBody.put("amount_ksn_index", sAmountKsnIndex);
-        jsonBody.put("base_amount_enc", sAmountEnc);
-        jsonBody.put("base_amount_hash", sAmountSHA512);
-        jsonBody.put("device_id", "PB10211W21557"); //TODO: Replace with the serial number (SN) of the device you are using.
-        jsonBody.put("trx_mode", 1);
-        jsonBody.put("device_timestamp", String.valueOf(timestamp));
-        jsonBody.put("entry_mode", "051"); //TODO 051 for dip 072 for tap
-        jsonBody.put("is_refund", false);
-        jsonBody.put("emv_req_len", sEmvLength);
-        jsonBody.put("emv_ksn_index", sEmvKsnIndex); //Emv KSN Index
-        jsonBody.put("emv_req_enc", sEmvEnc);
-        jsonBody.put("pin_ksn_index", sPinKsnIndex); //PIN KSN Index
-        jsonBody.put("pinblock_enc", sPinEnc);
-        jsonBody.put("pos_cloud_pointer", pos_cloud_pointer);
-        jsonBody.put("pos_request_type", "1");
-        jsonBody.put("track_2_hash", sTrackSHA512);
-        jsonBody.put("track_2_enc", sTrackEnc);
-        jsonBody.put("track_2_len", sTrackLength);
-        jsonBody.put("track_ksn_index", sTrack2KsnIndex); //Track2 KSN Index
+            //JSON body generate QRCode
+            Map<String, Object> jsonBody = new HashMap<>();
+            jsonBody.put("amount_ksn_index", sAmountKsnIndex);
+            jsonBody.put("base_amount_enc", sAmountEnc);
+            jsonBody.put("base_amount_hash", sAmountSHA512);
+            jsonBody.put("device_id", "PB10211W21557"); //TODO: Replace with the serial number (SN) of the device you are using.
+            jsonBody.put("trx_mode", 1);
+            jsonBody.put("device_timestamp", String.valueOf(timestamp));
+            jsonBody.put("entry_mode", "051"); //TODO 051 for dip 072 for tap
+            jsonBody.put("is_refund", false);
+            jsonBody.put("emv_req_len", sEmvLength);
+            jsonBody.put("emv_ksn_index", sEmvKsnIndex); //Emv KSN Index
+            jsonBody.put("emv_req_enc", sEmvEnc);
+            jsonBody.put("pin_ksn_index", sPinKsnIndex); //PIN KSN Index
+            jsonBody.put("pinblock_enc", sPinEnc);
+            jsonBody.put("pos_cloud_pointer", pos_cloud_pointer);
+            jsonBody.put("pos_request_type", "1");
+            jsonBody.put("track_2_hash", sTrackSHA512);
+            jsonBody.put("track_2_enc", sTrackEnc);
+            jsonBody.put("track_2_len", sTrackLength);
+            jsonBody.put("track_ksn_index", sTrack2KsnIndex); //Track2 KSN Index
 
 
-        String json = new Gson().toJson(jsonBody);
+            String json = new Gson().toJson(jsonBody);
 
-        RequestBody requestBody = RequestBody.create(
-                json,
-                MediaType.parse("application/json")
-        );
+            RequestBody requestBody = RequestBody.create(
+                    json,
+                    MediaType.parse("application/json")
+            );
 
-        Request request = new Request.Builder()
-                .url(endPoint)
-                .post(requestBody)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", token)
-                .addHeader("hit-from", "rest-abcd")
-                .build();
+            Request request = new Request.Builder()
+                    .url(endPoint)
+                    .post(requestBody)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", token)
+                    .addHeader("hit-from", "rest-1751866232-AWSA1FAV") //TODO format {Prefix}-{device_timestamp}-{random 8 alphanumeric}
+                    .build();
 
-        try (Response response = client.newCall(request).execute()) {
             System.out.println("-------------------------Process sale------------------------------------");
             System.out.println("URL path sale_trx-------:" + request.url().url().getPath());
             System.out.println("Request body------------------:\n" + json);
-            System.out.println("Status code-------------------: " + response.code());
+            try (Response response = client.newCall(request).execute()) {
+                String responseBody = response.body().string();
+                System.out.println("Response body-----------------:\n" + responseBody);
 
-            String responseBody = response.body().string();
-            System.out.println("Response body-----------------:\n" + responseBody);
-        } catch (IOException e) {
+                //TODO RESPONSE SUCCESS
+                //TODO {
+                //  "response_code": "0020",
+                //  "is_debit_flag": true,
+                //  "card_expiry_date": "2908",
+                //  "card_holder_name": "",
+                //  "batch_group": "BNI_DEBIT",
+                //  "mid": "000100914031166",
+                //  "tid": "91416602",
+                //  "host_date": "0707",
+                //  "pos_request_type": "1",
+                //  "invoice_num": "010900",
+                //  "base_amount": 555,
+                //  "approval_code": "125221",
+                //  "midware_timestamp": "1751867541",
+                //  "message": "SALE APPROVED.",
+                //  "batch_num": "000018",
+                //  "version": {
+                //    "crypto_ver": "v1.5.0",
+                //    "cdcp_ver": "v1.0.3"
+                //  },
+                //  "emv_ksn_index": "84D8C",
+                //  "rrn": "000000011296",
+                //  "emv_res_enc": "D043ACCCC84CD48AEE0EB09991B12E4A",
+                //  "container_env_name": "cash-prod.octopus.be1.docker",
+                //  "masked_pan": "537941******7809",
+                //  "print_receipt_merchant_name": "Cashlez IT 2",
+                //  "bin_result": "BCA_DEBIT_BIN2",
+                //  "host_time": "125221",
+                //  "print_receipt_address_line_2": "Jakarta Pusat,Tanah Abang",
+                //  "print_receipt_address_line_1": "Gd Atria @Sudirman Lt.23",
+                //  "emv_res_len": 24,
+                //  "status": "OK"
+                //TODO }
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Response body IOException-----------------:\n" + e);
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
